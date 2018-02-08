@@ -9,13 +9,17 @@ module Json =
     let deserialize<'a> str = 
         JsonConvert.DeserializeObject<'a> str
 
-let read<'a> dir topic : 'a array =
+let read<'a> dir topic : 'a array option =
     let file = Path.Combine(dir, topic + ".json")
-    let text = File.ReadAllText(file)
-    Json.deserialize<'a array>(text)
+    if File.Exists(file) then
+        let text = File.ReadAllText(file)
+        Json.deserialize<'a array>(text) |> Some
+    else
+        None
 
 let readAfter<'a> dir topic (i : int) =
-    (read<'a> dir topic).[i..]
+    (read<'a> dir topic)
+    |> Option.map (fun a -> a.[i..])
         
 let write<'a> dir topic e =
     let writeEvents file events =
@@ -27,10 +31,13 @@ let write<'a> dir topic e =
 
     let file = Path.Combine(dir, topic + ".json")
 
-    if not(File.Exists(file)) then
+    let events = read<'a> dir topic
+
+    match events with
+    | Some es ->
+        Array.append es [|e|]
+        |> writeEvents file
+    | None ->
         [|e|]
         |> writeEvents file
-    else
-        let events = read<'a> dir topic
-        Array.append events [|e|]
-        |> writeEvents file
+

@@ -51,7 +51,7 @@ module Events =
         let newLines = order.Lines |> List.where (fun l -> l.LineId <> r.LineId)
         {order with Lines = newLines}
 
-    let map (order : Order) (e : Event) =
+    let applyEvent (order : Order) (e : Event) =
         match e with
         | Created c -> create order c
         | LineAdded a -> addLine order a
@@ -64,7 +64,8 @@ type EventAdder = string -> Events.Event -> unit
 let orderSourceComposer (eventSource : EventSource) =
     fun (id : string) ->
         eventSource id
-        |> Option.map (Array.fold Events.map init)
+        |> Option.map (Array.fold Events.applyEvent init)
+
 
 module Commands =
     open Events
@@ -76,63 +77,45 @@ module Commands =
         | Create of Create
         | AddLine of AddLine
         | RemoveLine of RemoveLine
+        with
+            member x.Id = 
+                match x with
+                | Create {Id = id} -> id
+                | AddLine {Id = id} -> id
+                | RemoveLine {Id = id} -> id
 
-    let create (orderSource : OrderSource) (eventAdder : EventAdder) (c : Create) =
-        let id = c.Id |> string
-        let order = orderSource id
-        match order with
-        | Some _ ->
-            Result.Error "Order already exists"
-        | None ->
-            let e = Event.Created c
-            eventAdder id e
-            Result.Ok "Order created"
-
-    let addLine (orderSource : OrderSource) (eventAdder : EventAdder) (c : AddLine) =
-        let id = c.Id |> string
-        let order = orderSource id
-        match order with
-        | Some order ->
-            match not(order.Lines |> List.exists (fun l -> l.LineId = c.LineId)) with
-            | true ->
-                eventAdder id (Event.LineAdded c)
-                Result.Ok "Line Added"
-            | false ->
-                Result.Error "Line already exists"
-        | None ->
-            Result.Error "Order does not exist"
-
-    let removeLine (orderSource : OrderSource) (eventAdder : EventAdder) (c : RemoveLine) =
-        let id = c.Id |> string
-        let order = orderSource id
-        match order with
-        | Some o ->
-            match o.Lines |> List.exists (fun l -> l.LineId = c.LineId) with
-            | true ->
-                eventAdder id (Event.LineRemoved c)
-                Result.Ok "Line Added"
-            | false ->
-                Result.Error "Line does not exist"
-        | None ->
-            Result.Error "Order does not exist"
+    let private ensureOrder (orderSource: OrderSource) (cmd: Command) = 
+        match (orderSource (string cmd.Id)) with
+        | Some order -> Result.Ok order
+        | None -> Result.Error "Order already exists"
 
 
-    //type private ExistsHandler = Order -> Result<string, string>
-    //type private NotExistHandler = unit -> Result<string, string>
+    let addLine (eventAdder : EventAdder) (newLine : AddLine) order =
+        match not(order.Lines |> List.exists (fun l -> l.LineId = newLine.LineId)) with
+        | true ->
+            eventAdder (string newLine.Id) (Event.LineAdded newLine)
+            Result.Ok "Line Added"
+        | false ->
+            Result.Error "Line already exists"
 
-    //let private commandHandler (orderSource : OrderSource) (id : String) (exists : ExistsHandler) (notExist : NotExistHandler) =
-    //    let order = orderSource id
-    //    match order with
-    //    | Some o ->
-    //        exists o
-    //    | None ->
-    //        notExist ()
+    let create (eventAdder : EventAdder) (createOrder : Create) =
+        eventAdder (string createOrder.Id) (Event.Created createOrder)
+        Result.Ok "Order created"
 
-    //let create (orderSource : OrderSource) (eventAdder : EventAdder) (c : Create) =
-    //    let exists (order : Order) =
-    //        Result.Error "Order already exists"
-    //    let notExist () =
-    //        let e = Event.Created c
-    //        eventAdder (c.Id |> string) e
-    //        Result.Ok "Order created"
-    //    commandHandler orderSource (c.Id |> string) exists notExist
+    let removeLine (eventAdder : EventAdder) (remLine : RemoveLine) order =
+        match (order.Lines |> List.exists (fun l -> l.LineId = remLine.LineId)) with
+        | true ->
+            eventAdder (string remLine.Id) (Event.LineRemoved remLine)
+            Result.Ok "Line removed"
+        | false ->
+            Result.Error "Line does not exist"
+
+    let handleCommand orderSource eventAdder (cmd : Command) = 
+        let order = orderSource (string cmd.Id)
+        match cmd, order with
+        | Command.Create c, None -> create eventAdder c
+        | Command.Create c, Some o -> Result.Error "Order already exists"
+        | _, None -> Result.Error "Order does not exist"
+        | Command.AddLine l, Some o -> addLine eventAdder l o
+        | Command.RemoveLine l, Some o -> removeLine eventAdder l o
+

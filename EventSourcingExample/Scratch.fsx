@@ -87,11 +87,26 @@ let removeLine (eventAdder : EventAdder) (remLine : RemoveLine) order =
 
 // so now all your domain handling code validates the order finding first with 'ensureOrder', then passes that order into the event given
 
-let handleEvent orderSource eventAdder event = 
-    ensureOrder orderSource event
-    |> Result.bind (fun order -> 
-        match event with
-        | Events.Created c -> create eventAdder c
-        | Events.LineAdded al -> addLine eventAdder al order
-        | Events.LineRemoved rl -> removeLine eventAdder rl order
-    )
+let handleEvent orderSource eventAdder (event : Event) = 
+    let order = orderSource (string event.Id)
+    match event, order with
+    | Event.Created c, None -> create eventAdder c
+    | Event.Created c, Some o -> Result.Error "Order already exists"
+    | _, None -> Result.Error "Order does not exist"
+    | Event.LineAdded l, Some o -> addLine eventAdder l o
+    | Event.LineRemoved l, Some o -> removeLine eventAdder l o
+
+
+let (testOrderSource : OrderSource) =
+    fun (id : string) ->
+        None
+
+let (testEventAdder : EventAdder) =
+    fun (id : string) (event : Events.Event) ->
+        printfn "Order: %A Added: %A" id event
+
+let testEvent = Event.Created {
+    Id = Guid.Parse "a0000000-0000-0000-0000-000000000000"
+}
+
+handleEvent testOrderSource testEventAdder testEvent
