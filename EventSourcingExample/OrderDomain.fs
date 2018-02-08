@@ -66,13 +66,16 @@ let orderSourceComposer (eventSource : EventSource) =
         eventSource id
         |> Option.map (Array.fold Events.map init)
 
-
 module Commands =
     open Events
 
     type Create = Events.Created
     type AddLine = Events.LineAdded
     type RemoveLine = Events.LineRemoved
+    type Command =
+        | Create of Create
+        | AddLine of AddLine
+        | RemoveLine of RemoveLine
 
     let create (orderSource : OrderSource) (eventAdder : EventAdder) (c : Create) =
         let id = c.Id |> string
@@ -89,8 +92,8 @@ module Commands =
         let id = c.Id |> string
         let order = orderSource id
         match order with
-        | Some o ->
-            match not(o.Lines |> List.exists (fun l -> l.LineId = c.LineId)) with
+        | Some order ->
+            match not(order.Lines |> List.exists (fun l -> l.LineId = c.LineId)) with
             | true ->
                 eventAdder id (Event.LineAdded c)
                 Result.Ok "Line Added"
@@ -112,3 +115,24 @@ module Commands =
                 Result.Error "Line does not exist"
         | None ->
             Result.Error "Order does not exist"
+
+
+    //type private ExistsHandler = Order -> Result<string, string>
+    //type private NotExistHandler = unit -> Result<string, string>
+
+    //let private commandHandler (orderSource : OrderSource) (id : String) (exists : ExistsHandler) (notExist : NotExistHandler) =
+    //    let order = orderSource id
+    //    match order with
+    //    | Some o ->
+    //        exists o
+    //    | None ->
+    //        notExist ()
+
+    //let create (orderSource : OrderSource) (eventAdder : EventAdder) (c : Create) =
+    //    let exists (order : Order) =
+    //        Result.Error "Order already exists"
+    //    let notExist () =
+    //        let e = Event.Created c
+    //        eventAdder (c.Id |> string) e
+    //        Result.Ok "Order created"
+    //    commandHandler orderSource (c.Id |> string) exists notExist
