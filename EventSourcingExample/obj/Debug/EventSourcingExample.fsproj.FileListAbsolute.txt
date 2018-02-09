@@ -1,0 +1,11 @@
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\bin\Debug\EventSourcingExample.exe.config
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\bin\Debug\EventSourcingExample.XML
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\bin\Debug\EventSourcingExample.exe
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\bin\Debug\EventSourcingExample.pdb
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\bin\Debug\FSharp.Core.dll
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\bin\Debug\Newtonsoft.Json.dll
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\bin\Debug\System.ValueTuple.dll
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\bin\Debug\FSharp.Core.xml
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\bin\Debug\Newtonsoft.Json.xml
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\obj\Debug\EventSourcingExample.exe
+C:\Users\Matthew\Documents\GitHub\fsharp-eventsourcing-example\EventSourcingExample\obj\Debug\EventSourcingExample.pdb
