@@ -110,15 +110,21 @@ module Commands =
         else
             Result.Error "Line does not exist"
 
-    let composeCommandHandler (orderSource : OrderSource) (writer : EventWriter) : CommandHandler =
+    type CommandSet = {
+        Create : EventWriter -> Created -> Result<string, string>
+        AddLine : EventWriter -> Order -> LineAdded -> Result<string, string>
+        RemoveLine : EventWriter -> Order -> LineRemoved -> Result<string, string>
+    }
+
+    let composeCommandHandler (orderSource : OrderSource) (writer : EventWriter) (cmdSet : CommandSet) : CommandHandler =
         fun (cmd : Command) ->
             let order = orderSource (string cmd.Id)
             match cmd, order with
-            | Create c, None -> create writer c
+            | Create c, None -> cmdSet.Create writer c
             | Create c, Some o -> Result.Error "Order already exists"
             | _, None -> Result.Error "Order does not exist"
-            | AddLine l, Some o -> addLine writer o l
-            | RemoveLine l, Some o -> removeLine writer o l
+            | AddLine l, Some o -> cmdSet.AddLine writer o l
+            | RemoveLine l, Some o -> cmdSet.RemoveLine writer o l
             
 
     
