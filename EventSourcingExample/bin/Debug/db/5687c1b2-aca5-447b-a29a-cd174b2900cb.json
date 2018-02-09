@@ -37,5 +37,36 @@
         "LineId": 1
       }
     ]
+  },
+  {
+    "Case": "LineRemoved",
+    "Fields": [
+      {
+        "Id": "5687c1b2-aca5-447b-a29a-cd174b2900cb",
+        "LineId": 10
+      }
+    ]
+  },
+  {
+    "Case": "LineAdded",
+    "Fields": [
+      {
+        "Id": "5687c1b2-aca5-447b-a29a-cd174b2900cb",
+        "LineId": 10,
+        "ItemId": "monkey",
+        "Amount": 20.0
+      }
+    ]
+  },
+  {
+    "Case": "LineAdded",
+    "Fields": [
+      {
+        "Id": "5687c1b2-aca5-447b-a29a-cd174b2900cb",
+        "LineId": 5,
+        "ItemId": "chicken",
+        "Amount": 5.0
+      }
+    ]
   }
 ]

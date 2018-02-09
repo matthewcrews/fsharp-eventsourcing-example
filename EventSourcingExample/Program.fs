@@ -11,7 +11,7 @@ let main argv =
     let outputDir = @".\db"
     let eventReader = EventDB.read outputDir
     let eventWriter = EventDB.write outputDir
-    let orderReader = orderSourceComposer eventReader
+    let orderReader = Order.composeOrderSource eventReader
     let cmdHandler = Commands.composeCommandHandler orderReader eventWriter
     
     let orderId = Guid.Parse "5687C1B2-ACA5-447B-A29A-CD174B2900CB"
@@ -21,19 +21,19 @@ let main argv =
     //}
     //let result = cmdHandler createCmd
 
-    //let addLineCmd = Commands.AddLine {
+    let addLineCmd = Commands.AddLine {
+        Id = orderId
+        LineId = 5
+        ItemId = "chicken"
+        Amount = 5M
+    }
+    let result = cmdHandler addLineCmd
+
+    //let removeLineCmd = Commands.RemoveLine {
     //    Id = orderId
     //    LineId = 10
-    //    ItemId = "monkey"
-    //    Amount = 20M
     //}
-    //let result = cmdHandler addLineCmd
-
-    let removeLineCmd = Commands.RemoveLine {
-        Id = orderId
-        LineId = 1
-    }
-    let result = cmdHandler removeLineCmd
+    //let result = cmdHandler removeLineCmd
 
 
     printfn "%A" result

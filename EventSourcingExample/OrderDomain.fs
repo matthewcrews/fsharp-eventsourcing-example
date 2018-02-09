@@ -13,10 +13,6 @@ type Order = {
     Lines : OrderLine list
 }
 
-let init = {
-    Id = Guid.Parse "00000000-0000-0000-0000-000000000000"
-    Lines = []
-}
 
 module Events =
     type Created = {
@@ -39,6 +35,12 @@ module Events =
     | Created of Created
     | LineAdded of LineAdded
     | LineRemoved of LineRemoved
+        with 
+        member x.Id = 
+            match x with 
+            | Created { Id = id } -> id
+            | LineAdded { Id = id } -> id
+            | LineRemoved { Id = id } -> id
 
     let private create (order : Order) (c : Created) =
         {order with Id = c.Id}
@@ -58,69 +60,68 @@ module Events =
         | LineRemoved r -> removeLine order r
 
 
-type EventSource = string -> array<Events.Event> option
+type EventSource = string -> Events.Event array option
 type OrderSource = string -> Order option
-type EventAdder = string -> Events.Event -> unit
-    
-let orderSourceComposer (eventSource : EventSource) =
-    fun (id : string) ->
-        eventSource id
-        |> Option.map (Array.fold Events.applyEvent init)
+type EventWriter = string -> Events.Event -> unit
+ 
+module Order =
+    let private init = {
+        Id = Guid.Parse "00000000-0000-0000-0000-000000000000"
+        Lines = []
+    }
+
+    let composeOrderSource (eventSource : EventSource) : OrderSource =
+        fun (id : string) ->
+            eventSource id
+            |> Option.map (Array.fold Events.applyEvent init)
 
 
 module Commands =
     open Events
 
-    type private Create = Events.Created
-    type private AddLine = Events.LineAdded
-    type private RemoveLine = Events.LineRemoved
-
     type Command =
-        | Create of Create
-        | AddLine of AddLine
-        | RemoveLine of RemoveLine
-        with
-            member x.Id = 
-                match x with
-                | Create {Id = id} -> id
-                | AddLine {Id = id} -> id
-                | RemoveLine {Id = id} -> id
+    | Create of Created
+    | AddLine of LineAdded
+    | RemoveLine of LineRemoved
+        with 
+        member x.Id = 
+            match x with 
+            | Create { Id = id } -> id
+            | AddLine { Id = id } -> id
+            | RemoveLine { Id = id } -> id
 
     type CommandHandler = Command -> Result<string, string>
 
-    let private ensureOrder (orderSource: OrderSource) (cmd: Command) = 
-        match (orderSource (string cmd.Id)) with
-        | Some order -> Result.Ok order
-        | None -> Result.Error "Order already exists"
+    let private create (writer : EventWriter) (c : Created) =
+        writer (string c.Id) (Event.Created c)
+        Result.Ok "Order Added"
 
-
-    let private addLine (eventAdder : EventAdder) (newLine : AddLine) order =
-        match not(order.Lines |> List.exists (fun l -> l.LineId = newLine.LineId)) with
-        | true ->
-            eventAdder (string newLine.Id) (Event.LineAdded newLine)
+    let private addLine (writer : EventWriter) (order : Order) (a : LineAdded) =
+        if not(order.Lines |> List.exists (fun l -> l.LineId = a.LineId)) then
+            writer (string a.Id) (Event.LineAdded a)
             Result.Ok "Line Added"
-        | false ->
+        else
             Result.Error "Line already exists"
 
-    let private create (eventAdder : EventAdder) (createOrder : Create) =
-        eventAdder (string createOrder.Id) (Event.Created createOrder)
-        Result.Ok "Order created"
-
-    let private removeLine (eventAdder : EventAdder) (remLine : RemoveLine) order =
-        match (order.Lines |> List.exists (fun l -> l.LineId = remLine.LineId)) with
-        | true ->
-            eventAdder (string remLine.Id) (Event.LineRemoved remLine)
-            Result.Ok "Line removed"
-        | false ->
+    let private removeLine (writer : EventWriter) (order : Order) (r : LineRemoved) =
+        if order.Lines |> List.exists (fun l -> l.LineId = r.LineId) then
+            writer (string r.Id) (Event.LineRemoved r)
+            Result.Ok "Line Removed"
+        else
             Result.Error "Line does not exist"
 
-    let composeCommandHandler orderSource eventAdder =
+    let composeCommandHandler (orderSource : OrderSource) (writer : EventWriter) : CommandHandler =
         fun (cmd : Command) ->
             let order = orderSource (string cmd.Id)
             match cmd, order with
-            | Command.Create c, None -> create eventAdder c
-            | Command.Create c, Some o -> Result.Error "Order already exists"
+            | Create c, None -> create writer c
+            | Create c, Some o -> Result.Error "Order already exists"
             | _, None -> Result.Error "Order does not exist"
-            | Command.AddLine l, Some o -> addLine eventAdder l o
-            | Command.RemoveLine l, Some o -> removeLine eventAdder l o
+            | AddLine l, Some o -> addLine writer o l
+            | RemoveLine l, Some o -> removeLine writer o l
+            
+
+    
+
+
 
