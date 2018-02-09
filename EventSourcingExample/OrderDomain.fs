@@ -57,10 +57,11 @@ module Events =
         | LineAdded a -> addLine order a
         | LineRemoved r -> removeLine order r
 
+
 type EventSource = string -> array<Events.Event> option
 type OrderSource = string -> Order option
 type EventAdder = string -> Events.Event -> unit
-
+    
 let orderSourceComposer (eventSource : EventSource) =
     fun (id : string) ->
         eventSource id
