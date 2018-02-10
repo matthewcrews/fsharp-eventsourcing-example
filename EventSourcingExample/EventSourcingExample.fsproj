@@ -63,6 +63,7 @@
     <Content Include="packages.config" />
     <None Include="Scratch.fsx" />
     <None Include="InheritanceVsComposition.fsx" />
+    <None Include="TestingOptionFunctions.fsx" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
