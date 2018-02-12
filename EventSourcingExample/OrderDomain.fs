@@ -82,12 +82,17 @@ module Events =
 
 
 module Commands =
-    open Events
+
+    // I am recycling the definitions from the Events module because
+    // the data is the same
+    type Create = Events.Created
+    type AddLine = Events.LineAdded
+    type RemoveLine = Events.LineRemoved
 
     type Command =
-    | Create of Created
-    | AddLine of LineAdded
-    | RemoveLine of LineRemoved
+    | Create of Create
+    | AddLine of AddLine
+    | RemoveLine of RemoveLine
         with 
         member x.Id = 
             match x with 
@@ -95,43 +100,62 @@ module Commands =
             | AddLine { Id = id } -> id
             | RemoveLine { Id = id } -> id
 
-    type CommandResult = Result<string, string>
     type ErrorMessage = string
+    type CommandResult = Result<string, ErrorMessage>
     
-    type OrderNotExists = Command * Order option -> Result<Command, ErrorMessage>
-    type OrderExists = Command * Order option -> Result<Command * Order, ErrorMessage>
-    type LineExists = Command * Order -> Result<Command * Order, ErrorMessage>
-    type LineNotExist = Command * Order -> Result<Command * Order, ErrorMessage>
+    type OrderNotExists = Create * Order option -> Result<Create, ErrorMessage>
 
-    //type CheckCreate = Order option -> Created -> Result<Created, ErrorMessage>
-    //let composeCheckCreate (check : OrderExistsTest) : CheckCreate =
-    //    fun (order : Order option) (created : Created) ->
-    //        match check order with
-    //        | Result.Ok _ -> Result.Ok created
-    //        | Result.Error err -> Result.Error err
+    type OrderExists<'a, 'b> = 'a * 'b option -> Result<'a * 'b, ErrorMessage>
 
-    //type CheckAddLine = Order option -> LineAdded -> Result<LineAdded, ErrorMessage>
-    //let composeCheckAddLine (testExist : OrderExistsTest) (testAdd : LineDoesNotExistTest) =
-    //    fun (order : Order option) (add : LineAdded) ->
-    //        match testExist order |> Result.bind testAdd with
-    //        | Result.Ok _ -> Result.Ok add
-    //        | Result.Error err -> Result.Error err
 
-    //type CheckRemoveLine = Order option -> LineRemoved -> Result<LineRemoved, ErrorMessage>
-    //let composeCheckRemoveLine (testExist : OrderExistsTest) (testRemove : LineExistsTest) =
-    //    fun (order : Order option) (remove : LineRemoved) ->
-    //        match testExist order |> Result.bind testRemove with
-    //        | Result.Ok _ -> Result.Ok remove
-    //        | Result.Error err -> Result.Error err
+    type LineExists = RemoveLine * Order -> Result<Command * Order, ErrorMessage>
 
-    type CheckCommand = Order option -> Command -> Result<Command, ErrorMessage>
-    let composeCheckCommand (orderExists : OrderExists) (orderNotExists : OrderNotExists) (lineExists : LineExists) (lineNotExists : LineNotExist) : CheckCommand =
-        fun (order : Order option) (cmd : Command) ->
-            let getCommand x = x |> Result.map (fun y -> fst y)
+    type LineNotExist = AddLine * Order -> Result<Command * Order, ErrorMessage>
+
+
+    type ApplyCommand = Command -> Result<string, ErrorMessage>
+    type TestCreate = Create -> Result<Create, ErrorMessage>
+
+    type ApplyCreate = Create -> CommandResult
+    let composeApplyCreate (testCreate : TestCreate) (writer : Events.EventWriter) : ApplyCreate =
+        fun (create : Create) ->
+            
+    type ApplyAddLine = AddLine -> CommandResult
+    type ApplyRemoveLine = RemoveLine -> CommandResult
+
+    let composeApplyCommand (ac : ApplyCreate) (ala : ApplyAddLine) (alr : ApplyRemoveLine) =
+        fun (cmd : Command) ->
             match cmd with
-            | Create c -> orderNotExists (cmd, order)
-            | AddLine a -> orderExists (cmd, order) |> Result.bind lineNotExists |> getCommand
-            | RemoveLine r -> orderExists (cmd, order) |> Result.bind lineExists |> getCommand
+            | Command.Create cr -> ac cr
+            | Command.AddLine al -> ala al
+            | Command.RemoveLine rl -> alr rl
+
+    //type CheckCommand = Order option -> Command -> Result<Command, ErrorMessage>
+    //let checkCommand (order : Order option) (cmd : Command) : Result<Command, ErrorMessage> =
+    //        let getCommand x = x |> Result.map (fun y -> fst y)
+    //        let orderNotExists (cmd, order) =
+    //            match order with
+    //            | None -> Result.Ok cmd
+    //            | Some _ -> Result.Error "Order exists"
+    //        let orderExists (cmd, order) =
+    //            match order with
+    //            | Some o -> Result.Ok (cmd, o)
+    //            | None -> Result.Error "Order does not exist"
+    //        let lineNotExists (cmd : LineAdded, order) =
+    //            if order.Lines |> List.exists (fun l -> l.LineId = cmd.LineId) |> not then
+    //                Result.Ok (cmd, order)
+    //            else
+    //                Result.Error "Line already exists"
+    //    let lineExists (cmd, order) =
+    //        if order.Lines |> List.exists (fun l -> l.LineId = cmd.LineId) then
+    //            Result.Ok (cmd, order)
+    //        else
+    //            Result.Error "Line does not exist"
+            
+    //        match cmd with
+    //        | Create c -> orderNotExists (c, order) |> Result.map
+    //        | AddLine a -> orderExists (cmd, order) |> Result.bind lineNotExists
+    //        | RemoveLine r -> orderExists (cmd, order) |> Result.bind lineExists
             
 
     
